@@ -1,114 +1,273 @@
-# AUST Student Helpdesk — Vue project
+# AUST Student Helpdesk
 
-This keeps your existing Vue pages and design. It adds student login pages, a student dashboard and profile, a Supabase backend, role-based admin pages, private image uploads, and a server-side email function.
+A modern student support platform designed for the **African University of Science and Technology (AUST), Abuja, Nigeria**.
 
-## Start the app on your computer
+The AUST Student Helpdesk provides a centralized platform for students to submit complaints, report facility issues, request items, book venues, and track the progress of their submissions.
 
-1. Download and unzip the project.
-2. Open the unzipped `aust-guide-portal` folder in VS Code.
-3. Open **Terminal → New Terminal** in VS Code.
-4. Check that Node.js 22.18 or newer is installed, then run:
+**Live Demo:** [Open AUST Student Helpdesk](https://0c1d0791.aust-student-helpdesk.pages.dev)
+
+**Repository:** [GitHub — aust-student-helpdesk](https://github.com/joshuakimia1008-beep/aust-student-helpdesk)
+
+---
+
+## Overview
+
+University students need a straightforward way to report problems and communicate with the teams responsible for resolving them.
+
+The AUST Student Helpdesk addresses this need through a web-based platform that organizes student submissions, provides reference numbers, supports administrative workflows, and enables students to follow up on their requests.
+
+The project combines a responsive Vue.js frontend with a Supabase backend for authentication, database operations, file storage integration, and server-side functionality.
+
+## Features
+
+### Student Portal
+
+- **Complaint submission:** Submit complaints and report issues requiring attention.
+- **Facility and item requests:** Report faulty facilities and request items such as fans or air-conditioning units.
+- **Venue booking:** Submit requests to book university venues.
+- **Reference numbers:** Receive a unique reference number for submitted requests.
+- **Request tracking:** Access personal submissions and follow their progress.
+- **Student authentication:** Register, verify email addresses, and sign in.
+- **Profile and dashboard:** Access the student portal and manage relevant account information.
+- **Email notifications:** Support for submission receipts and request status notifications.
+
+### Administrative Dashboard
+
+- **Request management:** Review and manage student submissions.
+- **Role-based access:** Separate administrative responsibilities according to assigned roles.
+- **Complaint administration:** Handle complaints and facility or item requests.
+- **Venue administration:** Manage venue booking requests.
+- **Read-only access:** Provide designated administrators with viewing access.
+- **Administrative overview:** Access relevant information about submissions and their status.
+- **Activity and notification interfaces:** Support administrative monitoring and communication.
+
+### User Experience
+
+- Responsive layouts for different screen sizes.
+- Dedicated authentication and student portal interfaces.
+- Campus hostel information and image galleries.
+- Light and dark theme support in administrative interfaces.
+- Clear request statuses and feedback messages.
+
+## Technology Stack
+
+| Technology | Purpose |
+|---|---|
+| Vue 3 | Reactive frontend application |
+| TypeScript | Type-safe application development |
+| Vite | Development server and production build tooling |
+| Tailwind CSS v4 | Utility-first styling |
+| Vue Router | Client-side navigation |
+| Supabase | Authentication, database and backend services |
+| PostgreSQL | Relational database |
+| Supabase Edge Functions | Server-side workflows and email integrations |
+| Resend | Transactional email delivery |
+| Cloudflare Pages | Frontend hosting |
+| Playwright | End-to-end testing |
+
+## Architecture
+
+The application follows a frontend-and-backend architecture.
+
+```text
+Student / Administrator
+          |
+          v
+   Vue 3 Frontend
+          |
+          v
+    Supabase Client
+          |
+          v
+  Supabase Services
+   ├── Authentication
+   ├── PostgreSQL Database
+   ├── Row Level Security
+   ├── Storage Integration
+   └── Edge Functions
+          |
+          v
+   Email Notifications
+```
+
+The frontend communicates with Supabase for supported application operations. Database access policies and server-side authorization are important parts of protecting student submissions and administrative functionality.
+
+## Getting Started
+
+### Prerequisites
+
+Before running the project locally, install:
+
+- [Node.js](https://nodejs.org/)
+- npm, included with Node.js
+- A [Supabase](https://supabase.com/) project for backend functionality
+
+Git is recommended for version control.
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/joshuakimia1008-beep/aust-student-helpdesk.git
+```
+
+Navigate into the project:
+
+```bash
+cd aust-student-helpdesk
+```
+
+### 2. Install dependencies
 
 ```bash
 npm install
-cp .env.example .env.local
+```
+
+### 3. Configure environment variables
+
+Create a local environment file from the provided template.
+
+On Windows PowerShell:
+
+```powershell
+Copy-Item .env.example .env.local
+```
+
+Open `.env.local` and configure the required frontend variables:
+
+```env
+VITE_BACKEND_MODE=supabase
+VITE_SUPABASE_URL=your_supabase_project_url
+VITE_SUPABASE_ANON_KEY=your_supabase_publishable_or_anon_key
+```
+
+Replace the placeholder values with the appropriate credentials for your own Supabase project.
+
+**Security:** Never put a Supabase service-role key, secret API key, database password, or Resend API key in frontend environment variables prefixed with `VITE_`. Keep server-side secrets in the appropriate Supabase Edge Function secrets configuration.
+
+### 4. Configure the Supabase backend
+
+The repository includes SQL migrations in:
+
+```text
+supabase/migrations/
+```
+
+Review the migrations and apply them to your development Supabase project in the correct order using your chosen Supabase migration workflow.
+
+Configure authentication settings, email verification, required storage resources, and any backend secrets needed by the Edge Functions.
+
+Do not apply these migrations blindly to an existing production database. Review their effects and back up important data before making database changes.
+
+### 5. Start the development server
+
+```bash
 npm run dev
 ```
 
-On Windows PowerShell, use `Copy-Item .env.example .env.local` instead of the `cp` command. Open the local address Vite prints (usually `http://localhost:5173`).
+Open the local URL displayed in your terminal, typically:
 
-The provided `.env.example` selects **real Supabase mode**. Configure the project URL and public anon key before starting the app. To preview without a Supabase project, explicitly set `VITE_BACKEND_MODE=demo`; demo accounts are not real accounts and are not secure storage.
+```text
+http://localhost:5173
+```
 
-## Run the checks
+### 6. Build for production
+
+Run the TypeScript checks and production build:
 
 ```bash
-npm run type-check
 npm run build
-npx playwright install chromium   # only needed the first time
+```
+
+Vite generates the production frontend assets in the `dist/` directory.
+
+## Project Structure
+
+```text
+aust-student-helpdesk/
+├── public/
+│   ├── images/
+│   └── videos/
+├── src/
+│   ├── assets/
+│   ├── components/
+│   │   ├── admin/
+│   │   └── site/
+│   ├── lib/
+│   ├── views/
+│   │   └── admin/
+│   ├── App.vue
+│   ├── main.ts
+│   ├── router.ts
+│   └── style.css
+├── supabase/
+│   ├── functions/
+│   └── migrations/
+├── tests/
+│   └── e2e/
+├── .env.example
+├── .gitignore
+├── package.json
+├── playwright.config.ts
+├── tsconfig.json
+└── vite.config.ts
+```
+
+## Security Considerations
+
+Security is particularly important for a student support platform that may handle personal information and evidence submitted with complaints.
+
+- Keep private credentials out of source control.
+- Use Row Level Security (RLS) to restrict database access.
+- Ensure students can access only their own submissions.
+- Enforce administrative permissions on the backend, not just in the frontend.
+- Keep service-role keys and other privileged secrets in server-side environments.
+- Restrict access to uploaded evidence and other private files.
+- Configure authentication redirect URLs for trusted application origins.
+- Avoid committing real student records, passwords, tokens, or private attachments.
+
+Database migrations are included to make the database structure and policy changes reviewable alongside the application code.
+
+## Testing
+
+The repository includes Playwright end-to-end test configuration and tests.
+
+Run the configured test suite using the appropriate script from `package.json`. For example, if the project defines a `test:e2e` script:
+
+```bash
 npm run test:e2e
 ```
 
-The Playwright tests cover demo sign-in, a complaint, the student dashboard, anonymous admin case handling, a demo decision, and a protected-page redirect. They do **not** prove that your live Supabase project has correct security settings.
+Ensure the required test environment and browser dependencies are configured before running the tests.
 
-## Connect Supabase
+## Deployment
 
-1. Create a Supabase project.
-2. In the project, enable email/password sign-in and email confirmation. Add your local address (for example `http://localhost:5173`) and your real website address to Supabase **Authentication → URL Configuration**.
-3. Install the Supabase CLI if needed, then in this project folder run:
+The frontend is hosted on Cloudflare Pages.
 
-```bash
-npx supabase login
-npx supabase link --project-ref YOUR_PROJECT_REF
-npx supabase db push
-```
+**Live application:** [AUST Student Helpdesk](https://0c1d0791.aust-student-helpdesk.pages.dev)
 
-This runs the three files in `supabase/migrations` in order:
+For production deployments, configure the correct environment variables and ensure Supabase authentication redirects and allowed origins match the deployed domain.
 
-- `20261022120000_helpdesk_core.sql`
-- `20261022130000_helpdesk_api.sql`
-- `20261022140000_submission_receipt_email.sql`
+## Contributing
 
-If you use the Supabase SQL Editor instead, paste and run those three files **one at a time, in that order**. Do not run them a second time after a successful run.
+Contributions, suggestions, bug reports, and improvements are welcome.
 
-4. In the Supabase project settings, copy the **Project URL** and the public/anon client key. Open `.env.local` and set:
+1. Fork the repository.
+2. Create a feature branch.
+3. Make your changes.
+4. Run the relevant checks.
+5. Submit a pull request describing your changes.
 
-```dotenv
-VITE_BACKEND_MODE=supabase
-VITE_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
-VITE_SUPABASE_ANON_KEY=YOUR_PUBLIC_OR_ANON_KEY
-```
+Please do not submit real credentials, private student information, or production database secrets.
 
-Restart `npm run dev` after changing `.env.local`. Never put a Supabase `service_role` or secret key in `.env.local`, Vue code, or any variable starting with `VITE_`.
+## Project Status
 
-5. Deploy the email function and set its secrets. In Supabase, set `RESEND_API_KEY`, `EMAIL_FROM`, and `ALLOWED_ORIGINS` (comma-separated website addresses such as `http://localhost:5173,https://helpdesk.example.edu`). Then run:
+The application has been deployed and continues to be developed and improved. Some workflows and integrations may require further testing or configuration depending on the deployment environment.
 
-```bash
-npx supabase functions deploy decision-email
-```
+## Acknowledgements
 
-The function uses Supabase's server-side environment values for the project URL and service-role key. It sends a request receipt to the student's verified account email with the unique reference number, plus emails when staff record a decision or send a reply. New requests and student messages already appear in the relevant admins' in-app notifications. The student's email is looked up only on the server and is not returned to the admin page. Email failures do not discard a saved request; the portal remains the source of truth.
+Built to explore practical applications of web development, backend integration, database design, authentication, access control, and digital student support.
 
-6. Make the first real admin. Register a real account in the app and verify its email. Then, in **Supabase → SQL Editor**, run this query after replacing the email and display name:
+## License
 
-```sql
-insert into public.admins (user_id, display_name, role, active)
-select id, 'Your Name', 'Super Admin', true
-from auth.users
-where lower(email) = lower('your.verified@aust.edu.ng')
-  and email_confirmed_at is not null;
-```
+No license has been specified yet. Unless a license is added to this repository, others should not assume they have permission to reuse, modify, or redistribute the code.
 
-After that, sign in again. That Super Admin can add other **already registered and email-verified** staff from **Team & Roles**. The app will not automatically make a new user an admin.
-
-## What the security setup does
-
-- Students can get their own submissions; case staff receive anonymous case data without the student's name, email, phone, or account ID.
-- Admin permissions are checked in database functions, not just hidden buttons. Read-only accounts cannot decide or message.
-- Complaint and facility staff and venue staff see only their allowed case types.
-- Evidence uses a private Storage bucket. Images are resized and re-encoded in the browser; signed links are short-lived. Image content can still identify a person.
-- Email addresses and the service-role key stay out of admin browser responses.
-
-## Important: finish these policy decisions before production
-
-This is a working code base and a good next stage, but it has **not** been connected to your Supabase project or tested against real user accounts. Do not put real student data in it until you test the deployed project and choose the policies below:
-
-- **Database security tests:** run checks in Supabase with separate student, Complaint Admin, Venue Admin, Read-Only Admin, and Super Admin accounts. Verify direct table access, wrong-case access, read-only writes, Storage access, and service-function permissions. The included browser tests use demo data only; there are no PGlite or live Supabase permission tests yet.
-- **Duplicate submissions and limits:** the database validates field sizes and types, but the school still needs to decide what counts as a duplicate open complaint and how many requests are allowed. Those rules are not guessed here.
-- **Account deletion and records retention:** choose how long the university keeps cases and what happens to a student's profile when an account is deleted before enabling account deletion.
-- **Meeting details:** the app can mark a case as “meeting” and staff can include time/place in their response, but meeting time and location are not separate structured fields yet.
-- **Email coverage:** student request receipts and staff decisions/replies are emailed to the student. New case and student-message alerts appear in the admin portal; configure and test a shared office inbox separately if AUST wants email alerts for staff. Avoid emailing every admin to reduce noise and unnecessary exposure of case details.
-- **Retrying email:** failed email is recorded; add an approved retry workflow and verify provider duplicate-delivery behavior before relying on it operationally.
-
-For public use, also set up backups, production email sender verification, domain allowlists, rate limits, and a privacy review with AUST. `npm run build` passing does not replace those checks.
-
-## Main files
-
-- `src/lib/auth.ts` — Supabase and demo sign-in.
-- `src/lib/backend.ts` — shared demo/Supabase data functions.
-- `src/lib/supabase.ts` — browser client configuration.
-- `src/router.ts` — public and protected routes.
-- `src/views/StudentDashboard.vue`, `StudentSubmission.vue`, `StudentProfile.vue` — student pages.
-- `src/views/admin/` — admin pages.
-- `supabase/migrations/` — database, roles, policies, and functions.
-- `supabase/functions/decision-email/index.ts` — private email sending.
-- `tests/e2e/helpdesk.spec.ts` — demo browser tests.
