@@ -1,3 +1,4 @@
+```vue
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { RouterLink, useRoute, useRouter } from "vue-router";
@@ -9,9 +10,9 @@ import {
   LockKeyhole,
   CircleCheck,
 } from "lucide-vue-next";
+
 import logo from "@/lib/aust-logo.png";
-import { signIn, signInDemo } from "@/lib/auth";
-import { isSupabaseMode } from "@/lib/supabase";
+import { signIn } from "@/lib/auth";
 
 const route = useRoute();
 const router = useRouter();
@@ -21,6 +22,16 @@ const password = ref("");
 const error = ref("");
 const busy = ref(false);
 const showPassword = ref(false);
+
+// AUST email domain restriction.
+// Accepts @aust.edu.ng and departmental subdomains.
+function isValidAustEmail(value: string): boolean {
+  const normalizedEmail = value.trim().toLowerCase();
+
+  const emailPattern = /^[a-zA-Z0-9._%+-]+@(?:[a-zA-Z0-9-]+\.)*aust\.edu\.ng$/;
+
+  return emailPattern.test(normalizedEmail) && normalizedEmail.length <= 254;
+}
 
 const successMessage = computed(() => {
   if (route.query.verified === "1") {
@@ -44,18 +55,38 @@ function goBack() {
 
 async function submit() {
   error.value = "";
+
+  const normalizedEmail = email.value.trim().toLowerCase();
+
+  // Restrict login to official AUST email addresses.
+  if (!isValidAustEmail(normalizedEmail)) {
+    error.value =
+      "Access restricted. Please use your official AUST email address ending in .aust.edu.ng.";
+
+    return;
+  }
+
+  if (!password.value) {
+    error.value = "Please enter your password.";
+    return;
+  }
+
   busy.value = true;
 
   try {
-    const result = await signIn(email.value, password.value);
+    // Real Supabase authentication.
+    const result = await signIn(normalizedEmail, password.value);
 
     if (result.error) {
       error.value = result.error;
       return;
     }
 
+    // Prevent external redirects.
     const next =
-      typeof route.query.next === "string" && route.query.next.startsWith("/")
+      typeof route.query.next === "string" &&
+      route.query.next.startsWith("/") &&
+      !route.query.next.startsWith("//")
         ? route.query.next
         : "/student";
 
@@ -66,19 +97,6 @@ async function submit() {
     busy.value = false;
   }
 }
-
-function demo(role: "student" | "admin") {
-  signInDemo(role);
-
-  const next =
-    typeof route.query.next === "string" && route.query.next.startsWith("/")
-      ? route.query.next
-      : role === "admin"
-        ? "/admin"
-        : "/student";
-
-  void router.replace(next);
-}
 </script>
 
 <template>
@@ -86,11 +104,13 @@ function demo(role: "student" | "admin") {
     class="login-screen relative isolate flex min-h-svh items-center justify-center overflow-hidden px-4 py-8 sm:px-6"
     aria-label="Sign in to AUST Helpdesk"
   >
+    <!-- Background image -->
     <div
       class="login-screen__image absolute inset-0 -z-20"
       aria-hidden="true"
     />
 
+    <!-- Background overlays -->
     <div
       class="absolute inset-0 -z-10 bg-gradient-to-br from-ink/75 via-ink/45 to-primary-deep/40"
       aria-hidden="true"
@@ -98,9 +118,11 @@ function demo(role: "student" | "admin") {
 
     <div class="absolute inset-0 -z-10 bg-ink/15" aria-hidden="true" />
 
+    <!-- Login card -->
     <section
       class="w-full max-w-[440px] rounded-[1.75rem] border border-white/40 bg-card/95 p-6 shadow-2xl shadow-ink/25 backdrop-blur-md sm:p-9"
     >
+      <!-- Go back -->
       <button
         type="button"
         @click="goBack"
@@ -110,6 +132,7 @@ function demo(role: "student" | "admin") {
         Go back
       </button>
 
+      <!-- AUST branding -->
       <RouterLink
         to="/"
         class="inline-flex items-center gap-3 rounded-xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"
@@ -132,6 +155,7 @@ function demo(role: "student" | "admin") {
         </span>
       </RouterLink>
 
+      <!-- Heading -->
       <div class="mt-8">
         <p class="eyebrow text-primary">Student Helpdesk</p>
 
@@ -146,7 +170,9 @@ function demo(role: "student" | "admin") {
         </p>
       </div>
 
+      <!-- Login form -->
       <form class="mt-7 space-y-5" @submit.prevent="submit">
+        <!-- Success message -->
         <p
           v-if="successMessage"
           role="status"
@@ -156,6 +182,7 @@ function demo(role: "student" | "admin") {
           <span>{{ successMessage }}</span>
         </p>
 
+        <!-- Error message -->
         <p
           v-if="error"
           role="alert"
@@ -164,21 +191,31 @@ function demo(role: "student" | "admin") {
           {{ error }}
         </p>
 
+        <!-- Email -->
         <label class="block">
-          <span class="mb-2 block text-sm font-medium">Email address</span>
+          <span class="mb-2 block text-sm font-medium">
+            AUST Email Address
+          </span>
 
           <input
             v-model="email"
             required
             type="email"
             autocomplete="email"
-            placeholder="you@aust.edu.ng"
+            placeholder="name@department.aust.edu.ng"
+            pattern="[A-Za-z0-9._%+-]+@([A-Za-z0-9-]+\.)*aust\.edu\.ng"
+            title="Please use your official AUST email address ending in .aust.edu.ng."
             class="field-control"
           />
+
+          <span class="mt-1.5 block text-xs leading-5 text-muted-foreground">
+            Only official AUST staff and student email addresses are permitted.
+          </span>
         </label>
 
+        <!-- Password -->
         <label class="block">
-          <span class="mb-2 block text-sm font-medium">Password</span>
+          <span class="mb-2 block text-sm font-medium"> Password </span>
 
           <span class="relative block">
             <input
@@ -203,6 +240,7 @@ function demo(role: "student" | "admin") {
           </span>
         </label>
 
+        <!-- Forgot password -->
         <div class="-mt-2 text-right">
           <RouterLink
             to="/forgot-password"
@@ -212,18 +250,23 @@ function demo(role: "student" | "admin") {
           </RouterLink>
         </div>
 
+        <!-- Submit -->
         <button
           type="submit"
           :disabled="busy"
           class="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 font-semibold text-primary-foreground shadow-soft transition hover:bg-primary-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-wait disabled:opacity-65"
         >
           <LockKeyhole v-if="!busy" class="h-4 w-4" />
+
           {{ busy ? "Signing in..." : "Sign in securely" }}
+
           <ArrowRight v-if="!busy" class="h-4 w-4" />
         </button>
 
+        <!-- Registration -->
         <p class="text-center text-sm text-muted-foreground">
           New to the Helpdesk?
+
           <RouterLink
             to="/register"
             class="font-semibold text-primary hover:underline"
@@ -232,40 +275,9 @@ function demo(role: "student" | "admin") {
           </RouterLink>
         </p>
       </form>
-
-      <div v-if="!isSupabaseMode" class="mt-6 space-y-3 border-t pt-5">
-        <div>
-          <p class="text-sm font-medium">Preview the demo</p>
-          <p class="mt-1 text-xs leading-5 text-muted-foreground">
-            Demo mode is not secure and does not create real accounts or real
-            admin permissions.
-          </p>
-        </div>
-
-        <div class="grid gap-2 sm:grid-cols-2">
-          <button
-            type="button"
-            class="min-h-11 rounded-xl border px-3 py-2.5 text-sm font-medium transition hover:bg-muted focus-visible:outline-2 focus-visible:outline-primary"
-            @click="demo('student')"
-          >
-            Demo student
-          </button>
-
-          <button
-            type="button"
-            class="min-h-11 rounded-xl border px-3 py-2.5 text-sm font-medium transition hover:bg-muted focus-visible:outline-2 focus-visible:outline-primary"
-            @click="demo('admin')"
-          >
-            Demo admin
-          </button>
-        </div>
-      </div>
     </section>
 
-    <span class="sr-only">
-      Background placeholder: replace public/images/login-background.jpg with a
-      chosen campus photograph.
-    </span>
+    <span class="sr-only"> AUST campus background image. </span>
   </main>
 </template>
 
@@ -277,3 +289,4 @@ function demo(role: "student" | "admin") {
   background-size: cover;
 }
 </style>
+```

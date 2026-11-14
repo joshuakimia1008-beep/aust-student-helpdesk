@@ -1,3 +1,4 @@
+```vue
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
 import { RouterLink, useRoute, useRouter } from "vue-router";
@@ -8,13 +9,16 @@ import {
   EyeOff,
   UserRoundPlus,
 } from "lucide-vue-next";
+
 import logo from "@/lib/aust-logo.png";
+
 import {
   register,
   resendVerification,
   sendPasswordReset,
   updatePassword,
 } from "@/lib/auth";
+
 import { supabase } from "@/lib/supabase";
 
 const route = useRoute();
@@ -31,6 +35,15 @@ const message = ref("");
 const busy = ref(false);
 const showPassword = ref(false);
 const showConfirmPassword = ref(false);
+
+// AUST email restriction: accepts root and departmental subdomains.
+function isValidAustEmail(value: string): boolean {
+  const normalizedEmail = value.trim().toLowerCase();
+
+  const emailPattern = /^[a-zA-Z0-9._%+-]+@(?:[a-zA-Z0-9-]+\.)*aust\.edu\.ng$/;
+
+  return emailPattern.test(normalizedEmail) && normalizedEmail.length <= 254;
+}
 
 const title = computed(
   () =>
@@ -58,7 +71,7 @@ const description = computed(
       register:
         "Join the AUST Helpdesk to submit requests and keep track of updates.",
       verify: "Check your inbox for your email verification link.",
-      forgot: "Enter your email address to request a password reset link.",
+      forgot: "Enter your AUST email address to request a password reset link.",
       reset: "Choose a new password to regain access to your account.",
     })[page.value] ?? "Manage your AUST Helpdesk account securely.",
 );
@@ -74,6 +87,18 @@ function goBack() {
 async function submit() {
   error.value = "";
   message.value = "";
+
+  const normalizedEmail = email.value.trim().toLowerCase();
+
+  // Restrict registration and password recovery to AUST email addresses.
+  if (
+    (page.value === "register" || page.value === "forgot") &&
+    !isValidAustEmail(normalizedEmail)
+  ) {
+    error.value =
+      "Access restricted. Please use an official AUST email address ending in .aust.edu.ng.";
+    return;
+  }
 
   if (page.value === "register" && password.value.length < 12) {
     error.value = "Use at least 12 characters for your password.";
@@ -96,7 +121,11 @@ async function submit() {
 
   try {
     if (page.value === "register") {
-      const result = await register(email.value, password.value, name.value);
+      const result = await register(
+        normalizedEmail,
+        password.value,
+        name.value.trim(),
+      );
 
       if (result.error) {
         error.value = result.error;
@@ -104,9 +133,9 @@ async function submit() {
       }
 
       message.value =
-        "If registration was accepted, check your inbox for a verification link before signing in.";
+        "Registration successful! Check your AUST inbox for your verification link.";
     } else if (page.value === "forgot") {
-      const result = await sendPasswordReset(email.value);
+      const result = await sendPasswordReset(normalizedEmail);
 
       if (result.error) {
         error.value = result.error;
@@ -132,13 +161,23 @@ async function submit() {
   }
 }
 
+// Resend verification email.
 async function resend() {
   error.value = "";
   message.value = "";
+
+  const normalizedEmail = email.value.trim().toLowerCase();
+
+  if (!isValidAustEmail(normalizedEmail)) {
+    error.value =
+      "Please enter a valid AUST email address ending in .aust.edu.ng.";
+    return;
+  }
+
   busy.value = true;
 
   try {
-    const result = await resendVerification(email.value);
+    const result = await resendVerification(normalizedEmail);
 
     if (result.error) {
       error.value = result.error;
@@ -155,8 +194,10 @@ async function resend() {
 }
 
 /**
- * After successful verification, clear the temporary session
- * and send the student to the login page.
+ * After successful verification:
+ * 1. Clear the temporary Supabase session.
+ * 2. Redirect to login.
+ * 3. Display the verification success message.
  */
 async function finishVerification() {
   if (!supabase) {
@@ -164,8 +205,6 @@ async function finishVerification() {
     return;
   }
 
-  // Clear any temporary session established by the confirmation link.
-  // Redirect even if signing out the temporary session fails.
   try {
     const { error: signOutError } = await supabase.auth.signOut({
       scope: "local",
@@ -195,8 +234,7 @@ async function verifyCallback() {
   busy.value = true;
 
   try {
-    // Supabase confirmation links may contain tokens in the URL hash:
-    // /auth/verify#access_token=...&refresh_token=...&type=signup
+    // Handle Supabase confirmation links containing URL hash tokens.
     const hashParams = new URLSearchParams(
       window.location.hash.replace(/^#/, ""),
     );
@@ -276,8 +314,8 @@ async function verifyCallback() {
       return;
     }
 
-    // Supabase may process the URL fragment automatically during
-    // client initialization. Check whether it established a session.
+    // Supabase may automatically process the verification token
+    // during client initialization. Check the resulting session.
     const { data: sessionData, error: sessionError } =
       await supabase.auth.getSession();
 
@@ -289,21 +327,17 @@ async function verifyCallback() {
 
     const user = sessionData.session?.user;
 
-    // Only treat this as successful if the user is confirmed and
-    // the verification callback supplied an authentication session.
-    // Otherwise, do not assume verification succeeded.
-    if (
-      user?.email_confirmed_at &&
-      (window.location.hash.includes("access_token") ||
-        route.query.code ||
-        route.query.token_hash)
-    ) {
+    // FIX: If Supabase has already established a session for a
+    // confirmed user, redirect to login instead of showing the
+    // redundant instruction to check their inbox.
+    if (user?.email_confirmed_at) {
       await finishVerification();
       return;
     }
 
+    // Only show this message if verification has not completed.
     message.value =
-      "Open the verification link sent to your email. If needed, enter your email below to request another link.";
+      "Your email verification has not been completed. Open the verification link sent to your AUST email, or request another link below.";
   } catch {
     error.value =
       "Something went wrong while verifying your email. Please try the link again or request a new one.";
@@ -390,6 +424,7 @@ onMounted(() => {
       </div>
 
       <form class="mt-7 space-y-5" @submit.prevent="submit">
+        <!-- Success message -->
         <p
           v-if="message"
           role="status"
@@ -398,6 +433,7 @@ onMounted(() => {
           {{ message }}
         </p>
 
+        <!-- Error message -->
         <p
           v-if="error"
           role="alert"
@@ -406,9 +442,10 @@ onMounted(() => {
           {{ error }}
         </p>
 
+        <!-- REGISTRATION -->
         <template v-if="page === 'register'">
           <label class="block">
-            <span class="mb-2 block text-sm font-medium">Full name</span>
+            <span class="mb-2 block text-sm font-medium"> Full name </span>
 
             <input
               v-model="name"
@@ -421,20 +458,29 @@ onMounted(() => {
           </label>
 
           <label class="block">
-            <span class="mb-2 block text-sm font-medium">Email address</span>
+            <span class="mb-2 block text-sm font-medium">
+              Official AUST Email Address
+            </span>
 
             <input
               v-model="email"
               required
               type="email"
               autocomplete="email"
-              placeholder="you@aust.edu.ng"
+              placeholder="name@department.aust.edu.ng"
+              pattern="[A-Za-z0-9._%+-]+@([A-Za-z0-9-]+\.)*aust\.edu\.ng"
+              title="Only AUST email addresses ending in .aust.edu.ng are allowed."
               class="field-control"
             />
+
+            <span class="mt-1.5 block text-xs leading-5 text-muted-foreground">
+              Registration is exclusively available to AUST staff and students
+              using an official email address ending in .aust.edu.ng.
+            </span>
           </label>
 
           <label class="block">
-            <span class="mb-2 block text-sm font-medium">Password</span>
+            <span class="mb-2 block text-sm font-medium"> Password </span>
 
             <span class="relative block">
               <input
@@ -465,24 +511,34 @@ onMounted(() => {
           </label>
         </template>
 
+        <!-- FORGOT PASSWORD / EMAIL VERIFICATION -->
         <template v-else-if="page === 'forgot' || page === 'verify'">
           <label class="block">
-            <span class="mb-2 block text-sm font-medium">Email address</span>
+            <span class="mb-2 block text-sm font-medium">
+              Official AUST Email Address
+            </span>
 
             <input
               v-model="email"
               required
               type="email"
               autocomplete="email"
-              placeholder="you@aust.edu.ng"
+              placeholder="name@department.aust.edu.ng"
+              pattern="[A-Za-z0-9._%+-]+@([A-Za-z0-9-]+\.)*aust\.edu\.ng"
+              title="Only AUST email addresses ending in .aust.edu.ng are allowed."
               class="field-control"
             />
+
+            <span class="mt-1.5 block text-xs leading-5 text-muted-foreground">
+              Use your official AUST email address.
+            </span>
           </label>
         </template>
 
+        <!-- PASSWORD RESET -->
         <template v-else-if="page === 'reset'">
           <label class="block">
-            <span class="mb-2 block text-sm font-medium">New password</span>
+            <span class="mb-2 block text-sm font-medium"> New password </span>
 
             <span class="relative block">
               <input
@@ -539,6 +595,7 @@ onMounted(() => {
           </label>
         </template>
 
+        <!-- SUBMIT BUTTON -->
         <button
           v-if="page !== 'verify'"
           type="submit"
@@ -554,6 +611,7 @@ onMounted(() => {
           <ArrowRight v-if="page === 'register' && !busy" class="h-4 w-4" />
         </button>
 
+        <!-- RESEND VERIFICATION -->
         <button
           v-else
           type="button"
@@ -564,6 +622,7 @@ onMounted(() => {
           {{ busy ? "Please wait..." : "Resend verification email" }}
         </button>
 
+        <!-- REGISTRATION FOOTER -->
         <p
           v-if="page === 'register'"
           class="text-center text-sm text-muted-foreground"
@@ -578,6 +637,7 @@ onMounted(() => {
           </RouterLink>
         </p>
 
+        <!-- OTHER AUTH PAGES FOOTER -->
         <p v-else class="text-center text-sm text-muted-foreground">
           <RouterLink
             to="/login"
@@ -607,3 +667,4 @@ onMounted(() => {
   background-image: url("/images/register-background.jpg");
 }
 </style>
+```

@@ -1,21 +1,16 @@
 <script setup lang="ts">
-import SiteFooter from './SiteFooter.vue'
-import SiteHeader from './SiteHeader.vue'
-
 defineProps<{ eyebrow: string; title: string; intro: string }>()
 </script>
 
 <template>
-  <div class="min-h-screen">
-    <SiteHeader />
-    <section class="mx-auto max-w-4xl px-4 pb-16 pt-10 sm:px-8 sm:pb-20 sm:pt-14">
+  <div class="mx-auto w-full min-w-0 max-w-4xl space-y-6 px-4 py-7 sm:px-6 sm:py-10 lg:px-8 lg:py-12">
+    <header class="min-w-0">
       <p class="eyebrow text-primary">{{ eyebrow }}</p>
-      <h1 class="text-display mt-3 text-4xl sm:text-6xl">{{ title }}</h1>
-      <p class="mt-4 max-w-2xl text-base leading-7 text-muted-foreground sm:mt-5 sm:text-lg">{{ intro }}</p>
-      <div class="mt-8 sm:mt-10">
-        <slot />
-      </div>
-    </section>
-    <SiteFooter />
+      <h1 class="text-display mt-2 break-words text-3xl sm:text-4xl">{{ title }}</h1>
+      <p class="mt-2 max-w-2xl break-words text-sm leading-6 text-muted-foreground">
+        {{ intro }}
+      </p>
+    </header>
+    <slot />
   </div>
 </template>

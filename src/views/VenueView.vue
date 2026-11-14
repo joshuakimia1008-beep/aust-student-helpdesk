@@ -53,7 +53,7 @@ async function onSubmit(e: Event) {
         <Field label="Facilities needed" full><input name="facilities" maxlength="1000" placeholder="e.g. Projector, PA system, chairs" :class="inputCls" /></Field>
         <Field label="External guests?"><select name="guests" :class="inputCls"><option>No</option><option>Yes</option></select></Field>
         <Field label="Faculty adviser (if applicable)"><input name="adviser" maxlength="160" :class="inputCls" /></Field>
-        <label class="flex items-start gap-3 sm:col-span-2"><input required type="checkbox" class="mt-1 h-5 w-5 accent-primary" /><span class="text-sm">I agree to comply with AUST venue-use policies.</span></label>
+        <label class="flex items-start gap-3 md:col-span-2"><input required type="checkbox" class="mt-1 h-5 w-5 accent-primary" /><span class="text-sm">I agree to comply with AUST venue-use policies.</span></label>
       </FormCard>
       <SubmitButton :disabled="busy">{{ busy ? 'Sending…' : 'Submit venue request' }}</SubmitButton>
     </form>
